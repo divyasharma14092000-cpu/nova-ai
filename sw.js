@@ -1,7 +1,6 @@
 // App shell cache so Nova opens instantly; chat requests always go to the network.
-const CACHE = "nova-v1";
-const SHELL = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png",
-  "lib/marked.min.js", "lib/purify.min.js", "lib/highlight.min.js", "lib/github-dark.min.css"];
+const CACHE = "nova-v2";
+const SHELL = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
