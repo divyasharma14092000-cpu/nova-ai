@@ -1,0 +1,726 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>Nova AI</title>
+<meta name="theme-color" content="#0f1115">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="lib/github-dark.min.css">
+<style>
+:root{
+  --bg:#ffffff; --panel:#f6f7f9; --side:#f1f2f5; --line:#e3e5ea; --text:#16181d; --muted:#6b7180;
+  --accent:#4f6bed; --accent-ink:#fff; --user:#eef1fb; --code:#0f1115; --danger:#d93f3f;
+  --radius:16px; --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans",sans-serif;
+}
+:root[data-theme="dark"]{
+  --bg:#0f1115; --panel:#171a21; --side:#13151b; --line:#262a33; --text:#e8eaf0; --muted:#8c93a3;
+  --accent:#7b8fff; --accent-ink:#0f1115; --user:#1d2230; --code:#0a0c10;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1115; --panel:#171a21; --side:#13151b; --line:#262a33; --text:#e8eaf0; --muted:#8c93a3;
+    --accent:#7b8fff; --accent-ink:#0f1115; --user:#1d2230; --code:#0a0c10;
+  }
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font:16px/1.55 var(--font);display:flex;overflow:hidden;
+  -webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.icon{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* sidebar */
+#side{width:280px;flex:none;background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;
+  height:100%;padding:calc(10px + env(safe-area-inset-top)) 10px 10px}
+#newChat{display:flex;gap:10px;align-items:center;padding:11px 12px;border:1px solid var(--line);border-radius:12px;
+  background:var(--bg);font-weight:600}
+#search{margin:10px 0 6px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:inherit;font-size:14px}
+#chats{flex:1;overflow-y:auto;margin:4px -4px}
+.chatItem{display:flex;align-items:center;gap:6px;padding:9px 10px;margin:2px 4px;border-radius:10px;font-size:14.5px;cursor:pointer}
+.chatItem span{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chatItem:hover{background:var(--line)}
+.chatItem.active{background:var(--line);font-weight:600}
+.chatItem button{opacity:.0;padding:2px;color:var(--muted)}
+.chatItem:hover button,.chatItem.active button{opacity:1}
+.chatItem button .icon{width:17px;height:17px}
+.group{font-size:12px;color:var(--muted);padding:12px 12px 4px;font-weight:600}
+#sideFoot{border-top:1px solid var(--line);padding-top:8px;display:flex;flex-direction:column;gap:2px}
+#sideFoot button{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:10px;font-size:14.5px;text-align:left}
+#sideFoot button:hover{background:var(--line)}
+#who{font-size:12.5px;color:var(--muted);padding:4px 12px}
+
+/* main */
+#main{flex:1;display:flex;flex-direction:column;min-width:0;height:100%}
+#top{display:flex;align-items:center;gap:6px;padding:calc(8px + env(safe-area-inset-top)) 10px 8px;border-bottom:1px solid var(--line)}
+#top .iconBtn{padding:8px;border-radius:10px}
+#top .iconBtn:hover{background:var(--panel)}
+#menuBtn{display:none}
+#model{flex:none;font:inherit;font-weight:600;font-size:15px;color:var(--text);background:transparent;border:0;padding:6px 4px;max-width:58vw}
+#model option{background:var(--bg)}
+.spacer{flex:1}
+#webToggle{display:flex;gap:6px;align-items:center;font-size:13px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted)}
+#webToggle.on{color:var(--accent);border-color:var(--accent)}
+#webToggle .icon{width:16px;height:16px}
+
+#scroll{flex:1;overflow-y:auto;scroll-behavior:smooth}
+#msgs{max-width:780px;margin:0 auto;padding:18px 16px 30px}
+.msg{margin:18px 0;display:flex;flex-direction:column}
+.msg.user{align-items:flex-end}
+.msg.user .bubble{background:var(--user);padding:10px 15px;border-radius:20px 20px 6px 20px;max-width:85%;white-space:pre-wrap;word-wrap:break-word}
+.msg.model .bubble{width:100%;word-wrap:break-word}
+.bubble p{margin:.45em 0}
+.bubble :is(h1,h2,h3){line-height:1.3;margin:1em 0 .4em}
+.bubble h1{font-size:1.35em}.bubble h2{font-size:1.2em}.bubble h3{font-size:1.07em}
+.bubble ul,.bubble ol{padding-left:1.4em;margin:.4em 0}
+.bubble li{margin:.2em 0}
+.bubble a{color:var(--accent)}
+.bubble table{border-collapse:collapse;display:block;overflow-x:auto;margin:.6em 0;font-size:14.5px}
+.bubble th,.bubble td{border:1px solid var(--line);padding:6px 10px;text-align:left}
+.bubble th{background:var(--panel)}
+.bubble blockquote{border-left:3px solid var(--line);margin:.5em 0;padding:.1em 0 .1em 12px;color:var(--muted)}
+.bubble :not(pre)>code{background:var(--panel);padding:.12em .38em;border-radius:6px;font-size:.88em}
+.codeWrap{margin:.7em 0;border-radius:12px;overflow:hidden;background:var(--code);border:1px solid var(--line)}
+.codeHead{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;font-size:12.5px;color:#aab1c0;background:#1a1d25}
+.codeHead button{color:#cfd5e2;font-size:12.5px;display:flex;gap:5px;align-items:center}
+.codeWrap pre{margin:0;padding:12px 14px;overflow-x:auto;font-size:13.5px;line-height:1.5}
+.codeWrap pre code.hljs{padding:0;background:transparent}
+.imgs{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;margin-bottom:6px}
+.imgs img{width:110px;height:110px;object-fit:cover;border-radius:12px;border:1px solid var(--line)}
+.tools{display:flex;gap:2px;margin-top:4px;color:var(--muted)}
+.tools button{padding:6px;border-radius:8px}
+.tools button:hover{background:var(--panel);color:var(--text)}
+.tools .icon{width:17px;height:17px}
+.sources{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.sources a{font-size:12.5px;padding:4px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);text-decoration:none;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.err{color:var(--danger);font-size:14.5px}
+.cursor::after{content:"▍";animation:blink 1s steps(2) infinite;margin-left:2px;color:var(--accent)}
+@keyframes blink{50%{opacity:0}}
+.thinking{display:flex;gap:5px;padding:8px 0}
+.thinking i{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:dot 1.2s infinite}
+.thinking i:nth-child(2){animation-delay:.15s}.thinking i:nth-child(3){animation-delay:.3s}
+@keyframes dot{0%,80%,100%{opacity:.25;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+
+#empty{max-width:640px;margin:12vh auto 0;padding:0 18px;text-align:center}
+#empty h1{font-size:28px;margin:0 0 6px;font-weight:700}
+#empty p{color:var(--muted);margin:0 0 22px}
+.starters{display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left}
+.starters button{border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:14px;background:var(--bg)}
+.starters button:hover{background:var(--panel)}
+.starters b{display:block;font-size:14.5px}
+.starters span{color:var(--muted)}
+
+/* composer */
+#composer{padding:8px 12px calc(10px + env(safe-area-inset-bottom));}
+#box{max-width:780px;margin:0 auto;border:1px solid var(--line);border-radius:24px;background:var(--panel);padding:8px 8px 8px 10px}
+#attachRow{display:flex;gap:8px;flex-wrap:wrap;padding:4px 4px 8px}
+#attachRow:empty{display:none}
+.att{position:relative}
+.att img{width:62px;height:62px;object-fit:cover;border-radius:10px;display:block}
+.att button{position:absolute;top:-6px;right:-6px;background:var(--text);color:var(--bg);border-radius:50%;width:20px;height:20px;font-size:13px;line-height:20px}
+#row{display:flex;align-items:flex-end;gap:4px}
+#input{flex:1;border:0;outline:0;resize:none;background:transparent;color:var(--text);font:inherit;max-height:200px;padding:8px 4px;min-height:40px}
+#row .iconBtn{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--muted);flex:none}
+#row .iconBtn:hover{background:var(--line);color:var(--text)}
+#mic.rec{color:#fff;background:var(--danger)}
+#send{width:40px;height:40px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;flex:none}
+#send:disabled{opacity:.35}
+#hint{text-align:center;font-size:11.5px;color:var(--muted);margin-top:6px}
+
+/* modal */
+#modalBack{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+#modalBack.show{display:flex}
+#modal{background:var(--bg);border-radius:18px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;padding:20px}
+#modal h2{margin:0 0 14px;font-size:20px}
+.field{margin:14px 0}
+.field label{display:block;font-weight:600;font-size:14px;margin-bottom:6px}
+.field small{display:block;color:var(--muted);font-size:12.5px;margin-top:4px}
+.field input,.field select,.field textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font:inherit;font-size:15px}
+.field textarea{min-height:90px;resize:vertical}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{flex:1;padding:9px;font-size:14px}
+.seg button.on{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.modalBtns{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+.btn{padding:10px 18px;border-radius:10px;border:1px solid var(--line);font-weight:600}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.danger{color:var(--danger)}
+#toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:9px 16px;border-radius:10px;font-size:14px;opacity:0;transition:.2s;pointer-events:none;z-index:60}
+#toast.show{opacity:1}
+
+@media (max-width:820px){
+  #side{position:fixed;left:0;top:0;bottom:0;z-index:40;transform:translateX(-100%);transition:transform .22s;box-shadow:0 0 40px rgba(0,0,0,.25)}
+  body.sideOpen #side{transform:none}
+  #shade{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:39;display:none}
+  body.sideOpen #shade{display:block}
+  #menuBtn{display:block}
+  .starters{grid-template-columns:1fr}
+  .starters button:nth-child(n+3){display:none}
+  #webToggle span{display:none}
+}
+</style>
+</head>
+<body>
+<aside id="side">
+  <button id="newChat"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New chat</button>
+  <input id="search" placeholder="Search chats" autocomplete="off">
+  <div id="chats"></div>
+  <div id="sideFoot">
+    <button id="openSettings"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</button>
+    <div id="who"></div>
+  </div>
+</aside>
+<div id="shade"></div>
+
+<main id="main">
+  <header id="top">
+    <button class="iconBtn" id="menuBtn" aria-label="Menu"><svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button>
+    <select id="model" aria-label="Model"></select>
+    <div class="spacer"></div>
+    <button id="webToggle" title="Google Search se latest info"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg><span>Web</span></button>
+    <button class="iconBtn" id="newChatTop" aria-label="New chat"><svg class="icon" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+  </header>
+
+  <div id="scroll">
+    <div id="empty">
+      <h1 id="hello">Kya madad karun?</h1>
+      <p>Kuch bhi poocho — Hinglish, English, Hindi, sab chalega.</p>
+      <div class="starters">
+        <button data-p="Ek SEO-friendly blog outline banao: 'best almirah for small bedroom' — H2/H3 ke saath"><b>Blog outline</b><span>SEO-friendly H2/H3 structure</span></button>
+        <button data-p="Python script likho jo ek folder ki saari images ko 1200px width pe resize karke WebP me save kare"><b>Python script</b><span>Images resize + WebP</span></button>
+        <button data-p="Client ko polite reminder email likho ki pending payment 3 din me clear kar dein"><b>Email draft</b><span>Payment reminder, polite</span></button>
+        <button data-p="C me pointers ko ek simple example ke saath Hinglish me samjhao"><b>Concept samjhao</b><span>C pointers, simple example</span></button>
+      </div>
+    </div>
+    <div id="msgs"></div>
+  </div>
+
+  <div id="composer">
+    <div id="box">
+      <div id="attachRow"></div>
+      <div id="row">
+        <button class="iconBtn" id="attach" aria-label="Photo add karo"><svg class="icon" viewBox="0 0 24 24"><path d="M21.4 11.1l-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></svg></button>
+        <input type="file" id="file" accept="image/*" multiple hidden>
+        <textarea id="input" rows="1" placeholder="Message Nova…"></textarea>
+        <button class="iconBtn" id="mic" aria-label="Bolke likho"><svg class="icon" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+        <button id="send" aria-label="Send" disabled><svg class="icon" viewBox="0 0 24 24" id="sendIco"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+      </div>
+    </div>
+    <div id="hint">Nova galti kar sakta hai. Zaroori baatein check kar lena.</div>
+  </div>
+</main>
+
+<div id="modalBack"><div id="modal"></div></div>
+<div id="toast"></div>
+
+<script src="lib/marked.min.js"></script>
+<script src="lib/purify.min.js"></script>
+<script src="lib/highlight.min.js"></script>
+<script>
+"use strict";
+const APP = "Nova";
+const $ = s => document.querySelector(s);
+const ICON = {
+  copy:'<svg class="icon" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
+  check:'<svg class="icon" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>',
+  redo:'<svg class="icon" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>',
+  speak:'<svg class="icon" viewBox="0 0 24 24"><path d="M11 5L6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>',
+  edit:'<svg class="icon" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+  trash:'<svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>',
+  send:'<path d="M12 19V5M5 12l7-7 7 7"/>',
+  stop:'<rect x="7" y="7" width="10" height="10" rx="1.5" fill="currentColor" stroke="none"/>',
+};
+
+/* ---------------- settings ---------------- */
+const DEFAULTS = {mode:"server", code:"", key:"", system:"", voiceLang:"en-IN", theme:"auto", web:false, model:""};
+let S = {...DEFAULTS};
+try { S = {...DEFAULTS, ...JSON.parse(localStorage.getItem("nova_settings") || "{}")}; } catch {}
+// static hosting (GitHub Pages etc.) has no api.php -> only "own key" mode
+const STATIC_HOST = /github\.io$|pages\.dev$|netlify\.app$/.test(location.hostname);
+if (STATIC_HOST) S.mode = "own";
+const saveS = () => { try { localStorage.setItem("nova_settings", JSON.stringify(S)); } catch {} };
+const OWN_MODELS = ["gemini-3.5-flash-lite", "gemini-3.8-flash"];
+let MODELS = OWN_MODELS.slice();
+let userName = "";
+
+function applyTheme(){
+  if (S.theme === "auto") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", S.theme);
+}
+applyTheme();
+
+/* ---------------- storage (IndexedDB) ---------------- */
+let db;
+function openDB(){
+  return new Promise((res, rej) => {
+    const r = indexedDB.open("nova", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("chats", {keyPath:"id"});
+    r.onsuccess = () => { db = r.result; res(); };
+    r.onerror = () => rej(r.error);
+  });
+}
+const tx = (mode, fn) => new Promise((res, rej) => {
+  const t = db.transaction("chats", mode); const st = t.objectStore("chats");
+  const out = fn(st); t.oncomplete = () => res(out && out.result); t.onerror = () => rej(t.error);
+});
+const dbAll = () => new Promise(res => { const r = db.transaction("chats").objectStore("chats").getAll(); r.onsuccess = () => res(r.result || []); });
+const dbPut = c => tx("readwrite", st => st.put(c));
+const dbDel = id => tx("readwrite", st => st.delete(id));
+
+let chats = [];          // all chats, newest first
+let cur = null;          // current chat {id,title,updated,messages:[{role,text,images,sources}]}
+let busy = false, controller = null;
+let pending = [];        // images waiting to be sent [{mime,data,url}]
+
+/* ---------------- helpers ---------------- */
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+function toast(t){ const el = $("#toast"); el.textContent = t; el.classList.add("show"); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), 1800); }
+function esc(s){ return s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+async function copyText(t){ try { await navigator.clipboard.writeText(t); } catch { const a = document.createElement("textarea"); a.value = t; document.body.append(a); a.select(); document.execCommand("copy"); a.remove(); } toast("Copied"); }
+
+marked.setOptions({gfm:true, breaks:true});
+function renderMD(el, text, streaming){
+  el.innerHTML = DOMPurify.sanitize(marked.parse(text || ""), {ADD_ATTR:["target"]});
+  el.querySelectorAll("a").forEach(a => { a.target = "_blank"; a.rel = "noopener"; });
+  el.querySelectorAll("pre").forEach(pre => {
+    const code = pre.querySelector("code"); if (!code) return;
+    const lang = ((code.className.match(/language-([\w+#-]+)/) || [])[1]) || "code";
+    if (!streaming) { try { hljs.highlightElement(code); } catch {} }
+    const wrap = document.createElement("div"); wrap.className = "codeWrap";
+    const head = document.createElement("div"); head.className = "codeHead";
+    head.innerHTML = `<span>${esc(lang)}</span><button>${ICON.copy}Copy</button>`;
+    head.querySelector("button").onclick = () => copyText(code.innerText);
+    pre.replaceWith(wrap); wrap.append(head, pre);
+  });
+}
+function scrollDown(force){
+  const sc = $("#scroll");
+  if (force || sc.scrollHeight - sc.scrollTop - sc.clientHeight < 160) sc.scrollTop = sc.scrollHeight;
+}
+
+/* ---------------- sidebar ---------------- */
+function groupName(ts){
+  const d = new Date(ts), now = new Date();
+  const day = 864e5, start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  if (ts >= start) return "Today";
+  if (ts >= start - day) return "Yesterday";
+  if (ts >= start - 7 * day) return "Previous 7 days";
+  return d.toLocaleString("en-IN", {month:"long", year:"numeric"});
+}
+function renderList(){
+  const q = $("#search").value.trim().toLowerCase();
+  const box = $("#chats"); box.innerHTML = "";
+  let last = "";
+  chats.filter(c => !q || c.title.toLowerCase().includes(q) || c.messages.some(m => (m.text || "").toLowerCase().includes(q)))
+    .forEach(c => {
+      const g = groupName(c.updated);
+      if (g !== last) { const h = document.createElement("div"); h.className = "group"; h.textContent = g; box.append(h); last = g; }
+      const it = document.createElement("div");
+      it.className = "chatItem" + (cur && cur.id === c.id ? " active" : "");
+      it.innerHTML = `<span></span><button title="Rename">${ICON.edit}</button><button title="Delete">${ICON.trash}</button>`;
+      it.querySelector("span").textContent = c.title;
+      it.onclick = () => { openChat(c.id); closeSide(); };
+      const [ren, del] = it.querySelectorAll("button");
+      ren.onclick = async e => { e.stopPropagation(); const t = prompt("Chat ka naam", c.title); if (t && t.trim()) { c.title = t.trim(); await dbPut(c); renderList(); } };
+      del.onclick = async e => { e.stopPropagation(); if (!confirm(`"${c.title}" delete karein?`)) return;
+        await dbDel(c.id); chats = chats.filter(x => x.id !== c.id); if (cur && cur.id === c.id) newChat(); renderList(); };
+      box.append(it);
+    });
+}
+const closeSide = () => document.body.classList.remove("sideOpen");
+
+/* ---------------- chat view ---------------- */
+function newChat(){
+  if (busy) stop();
+  cur = null; $("#msgs").innerHTML = ""; $("#empty").style.display = "";
+  renderList(); $("#input").focus();
+}
+function openChat(id){
+  if (busy) stop();
+  cur = chats.find(c => c.id === id); if (!cur) return newChat();
+  $("#msgs").innerHTML = ""; $("#empty").style.display = "none";
+  cur.messages.forEach((m, i) => addMsgEl(m, i));
+  renderList(); scrollDown(true);
+}
+function addMsgEl(m, idx){
+  const el = document.createElement("div"); el.className = "msg " + m.role; el.dataset.i = idx;
+  if (m.role === "user") {
+    if (m.images && m.images.length) {
+      const g = document.createElement("div"); g.className = "imgs";
+      m.images.forEach(im => { const i = document.createElement("img"); i.src = `data:${im.mime};base64,${im.data}`; g.append(i); });
+      el.append(g);
+    }
+    const b = document.createElement("div"); b.className = "bubble"; b.textContent = m.text; el.append(b);
+    const t = document.createElement("div"); t.className = "tools";
+    t.innerHTML = `<button title="Copy">${ICON.copy}</button><button title="Edit">${ICON.edit}</button>`;
+    const [cp, ed] = t.querySelectorAll("button");
+    cp.onclick = () => copyText(m.text);
+    ed.onclick = () => editFrom(+el.dataset.i);
+    el.append(t);
+  } else {
+    const b = document.createElement("div"); b.className = "bubble";
+    if (m.error) b.innerHTML = `<div class="err">${esc(m.error)}</div>`; else renderMD(b, m.text);
+    el.append(b);
+    if (m.sources && m.sources.length) el.append(sourcesEl(m.sources));
+    el.append(modelTools(el, m));
+  }
+  $("#msgs").append(el);
+  return el;
+}
+function sourcesEl(src){
+  const s = document.createElement("div"); s.className = "sources";
+  src.slice(0, 8).forEach(x => { const a = document.createElement("a"); a.href = x.uri; a.target = "_blank"; a.rel = "noopener"; a.textContent = x.title || new URL(x.uri).hostname; s.append(a); });
+  return s;
+}
+function modelTools(el, m){
+  const t = document.createElement("div"); t.className = "tools";
+  t.innerHTML = `<button title="Copy">${ICON.copy}</button><button title="Read aloud">${ICON.speak}</button><button title="Regenerate">${ICON.redo}</button>`;
+  const [cp, sp, rg] = t.querySelectorAll("button");
+  cp.onclick = () => copyText(m.text || "");
+  sp.onclick = () => speak(m.text || "");
+  rg.onclick = () => regenerate(+el.dataset.i);
+  return t;
+}
+
+/* ---------------- read aloud ---------------- */
+function speak(text){
+  if (!("speechSynthesis" in window)) return toast("Is phone me read-aloud nahi hai");
+  if (speechSynthesis.speaking) { speechSynthesis.cancel(); return; }
+  const plain = text.replace(/```[\s\S]*?```/g, " code block. ").replace(/[#*_`>|\-]+/g, " ").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+  const u = new SpeechSynthesisUtterance(plain.slice(0, 4000));
+  const hindi = /[ऀ-ॿ]/.test(plain);
+  const voices = speechSynthesis.getVoices();
+  u.voice = voices.find(v => v.lang === (hindi ? "hi-IN" : "en-IN")) || voices.find(v => v.lang.startsWith(hindi ? "hi" : "en")) || null;
+  u.lang = u.voice ? u.voice.lang : (hindi ? "hi-IN" : "en-IN");
+  speechSynthesis.speak(u);
+}
+
+/* ---------------- sending ---------------- */
+function buildContents(msgs){
+  return msgs.filter(m => !m.error && (m.text || (m.images && m.images.length))).map(m => {
+    const parts = [];
+    (m.images || []).forEach(im => parts.push({inline_data:{mime_type:im.mime, data:im.data}}));
+    if (m.text) parts.push({text:m.text});
+    return {role: m.role === "user" ? "user" : "model", parts};
+  });
+}
+function systemPrompt(){
+  const now = new Date().toLocaleString("en-IN", {dateStyle:"full", timeStyle:"short"});
+  let s = `You are ${APP}, a helpful, friendly AI assistant (like ChatGPT). Current date/time: ${now} (India).
+Reply in the same language and script the user writes in (Hinglish in Roman script if they write Hinglish).
+Use Markdown: headings, lists, tables and fenced code blocks with the language name when helpful. Keep answers clear and to the point.`;
+  if (userName) s += `\nThe user's name is ${userName}.`;
+  if (S.system.trim()) s += `\n\nUser's custom instructions:\n${S.system.trim()}`;
+  return s;
+}
+
+async function send(text){
+  text = (text ?? $("#input").value).trim();
+  if (busy || (!text && !pending.length)) return;
+  if (S.mode === "server" && !S.code) return openSettings("Pehle access code daalo.");
+  if (S.mode === "own" && !S.key) return openSettings("Pehle apni Gemini API key daalo.");
+
+  if (!cur) {
+    cur = {id:uid(), title:(text || "Image chat").slice(0, 48), updated:Date.now(), messages:[]};
+    chats.unshift(cur);
+  }
+  const um = {role:"user", text, images:pending.map(p => ({mime:p.mime, data:p.data}))};
+  cur.messages.push(um);
+  $("#input").value = ""; autoSize(); pending = []; renderAttach(); updateSend();
+  $("#empty").style.display = "none";
+  addMsgEl(um, cur.messages.length - 1);
+  scrollDown(true);
+  await answer();
+}
+
+async function answer(){
+  const mm = {role:"model", text:""};
+  cur.messages.push(mm);
+  const el = addMsgEl(mm, cur.messages.length - 1);
+  const bubble = el.querySelector(".bubble");
+  const toolsEl = el.querySelector(".tools"); toolsEl.style.display = "none";
+  bubble.innerHTML = '<div class="thinking"><i></i><i></i><i></i></div>';
+  scrollDown(true);
+  setBusy(true);
+  controller = new AbortController();
+
+  const contents = buildContents(cur.messages.slice(0, -1));
+  const order = [S.model || MODELS[0], ...MODELS.filter(m => m !== (S.model || MODELS[0]))];
+  let lastErr = "", raf = 0, sources = [];
+  const paint = () => { raf = 0; renderMD(bubble, mm.text, true); bubble.classList.add("cursor"); scrollDown(); };
+
+  for (const model of order) {
+    for (const web of S.web ? [true, false] : [false]) {
+      try {
+        await stream(model, contents, web, (chunk, srcs) => {
+          if (chunk) { mm.text += chunk; if (!raf) raf = requestAnimationFrame(paint); }
+          if (srcs) sources = srcs;
+        });
+        lastErr = "";
+        break;
+      } catch (e) {
+        if (e.name === "AbortError") { lastErr = ""; break; }
+        lastErr = e.message || String(e);
+        if (mm.text) break;                               // partial answer: keep it
+        if (web && e.status === 400) continue;            // search not allowed -> same model, no web
+        break;                                            // quota / overload -> next model
+      }
+    }
+    if (!lastErr || mm.text || controller.signal.aborted) break;
+    if (!(/429|quota|503|overloaded|UNAVAILABLE|RESOURCE/i.test(lastErr))) break;
+  }
+  cancelAnimationFrame(raf);
+  bubble.classList.remove("cursor");
+  if (!mm.text && lastErr) {
+    mm.error = friendlyErr(lastErr);
+    bubble.innerHTML = `<div class="err">${esc(mm.error)}</div>`;
+  } else {
+    if (!mm.text) mm.text = "_(ruk gaya)_";
+    renderMD(bubble, mm.text, false);
+    if (sources.length) { mm.sources = sources; el.insertBefore(sourcesEl(sources), toolsEl); }
+  }
+  toolsEl.style.display = "";
+  setBusy(false);
+  cur.updated = Date.now();
+  chats.sort((a, b) => b.updated - a.updated);
+  await dbPut(cur); renderList(); scrollDown();
+  if (S.mode === "server") refreshLeft();
+}
+async function refreshLeft(){
+  try { const r = await fetch("api.php?check=1", {headers:{"X-Access-Code":S.code}}); const j = await r.json();
+    if (r.ok) $("#who").textContent = `${userName} · aaj ${j.left} messages baaki`; } catch {}
+}
+
+function friendlyErr(e){
+  if (/401|access code/i.test(e)) return "Access code galat hai. Settings me sahi code daalo.";
+  if (/API key not valid|API_KEY_INVALID/i.test(e)) return "Gemini API key galat hai. Settings check karo.";
+  if (/429|quota|RESOURCE_EXHAUSTED|limit/i.test(e)) return "Limit khatam ho gayi (" + e.slice(0, 140) + "). Thodi der baad ya kal try karo.";
+  if (/Failed to fetch|NetworkError|network/i.test(e)) return "Internet / server se connect nahi ho paaya. Connection check karo.";
+  return "Error: " + e.slice(0, 300);
+}
+
+async function stream(model, contents, web, onData){
+  let res;
+  if (S.mode === "server") {
+    res = await fetch("api.php", {method:"POST", signal:controller.signal,
+      headers:{"Content-Type":"application/json", "X-Access-Code":S.code},
+      body:JSON.stringify({model, contents, system:systemPrompt(), search:web})});
+  } else {
+    const body = {contents, system_instruction:{parts:[{text:systemPrompt()}]}, generationConfig:{temperature:0.7}};
+    if (web) body.tools = [{google_search:{}}];
+    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
+      {method:"POST", signal:controller.signal, headers:{"Content-Type":"application/json", "x-goog-api-key":S.key}, body:JSON.stringify(body)});
+  }
+  if (!res.ok) {
+    let msg = "HTTP " + res.status;
+    try { const j = await res.json(); msg = j.error && (j.error.message || j.error) || (j[0] && j[0].error && j[0].error.message) || msg; } catch {}
+    const err = new Error(`${res.status} ${msg}`); err.status = res.status; throw err;
+  }
+  const reader = res.body.getReader(), dec = new TextDecoder();
+  let buf = "", got = false;
+  const handle = line => {
+    if (!line.startsWith("data:")) return;
+    const s = line.slice(5).trim(); if (!s || s === "[DONE]") return;
+    let j; try { j = JSON.parse(s); } catch { return; }
+    if (j.error) { const e = new Error(j.error.message || "stream error"); e.status = j.error.code; throw e; }
+    const c = (j.candidates || [])[0]; if (!c) return;
+    const txt = ((c.content && c.content.parts) || []).filter(p => !p.thought).map(p => p.text || "").join("");
+    let srcs = null;
+    const gm = c.groundingMetadata;
+    if (gm && gm.groundingChunks) srcs = gm.groundingChunks.filter(x => x.web).map(x => ({uri:x.web.uri, title:x.web.title}));
+    if (txt) got = true;
+    onData(txt, srcs);
+    if (c.finishReason === "SAFETY") onData("\n\n_(Safety filter ki wajah se jawab ruk gaya.)_");
+  };
+  while (true) {
+    const {value, done} = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, {stream:true});
+    let i; while ((i = buf.indexOf("\n")) >= 0) { handle(buf.slice(0, i).replace(/\r$/, "")); buf = buf.slice(i + 1); }
+  }
+  if (buf) handle(buf);
+  if (!got) { const e = new Error("Khaali jawab aaya"); e.status = 503; throw e; }
+}
+
+function stop(){ if (controller) controller.abort(); }
+function setBusy(b){
+  busy = b;
+  $("#sendIco").innerHTML = b ? ICON.stop : ICON.send;
+  updateSend();
+}
+function updateSend(){ $("#send").disabled = !busy && !$("#input").value.trim() && !pending.length; }
+
+async function regenerate(i){
+  if (busy || !cur) return;
+  cur.messages = cur.messages.slice(0, i);
+  [...$("#msgs").children].forEach(el => { if (+el.dataset.i >= i) el.remove(); });
+  await answer();
+}
+function editFrom(i){
+  if (busy || !cur) return;
+  const m = cur.messages[i];
+  $("#input").value = m.text; autoSize(); updateSend();
+  pending = (m.images || []).map(im => ({...im})); renderAttach();
+  cur.messages = cur.messages.slice(0, i);
+  [...$("#msgs").children].forEach(el => { if (+el.dataset.i >= i) el.remove(); });
+  $("#input").focus();
+}
+
+/* ---------------- images ---------------- */
+async function addFiles(files){
+  for (const f of files) {
+    if (!f.type.startsWith("image/")) continue;
+    if (pending.length >= 4) { toast("Max 4 photos"); break; }
+    pending.push(await shrink(f));
+  }
+  renderAttach(); updateSend();
+}
+function shrink(file){   // resize to max 1600px JPEG so uploads stay small
+  return new Promise((res, rej) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const k = Math.min(1, 1600 / Math.max(img.width, img.height));
+      const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      const d = c.toDataURL("image/jpeg", 0.85);
+      res({mime:"image/jpeg", data:d.split(",")[1]});
+    };
+    img.onerror = rej; img.src = url;
+  });
+}
+function renderAttach(){
+  const r = $("#attachRow"); r.innerHTML = "";
+  pending.forEach((p, i) => {
+    const d = document.createElement("div"); d.className = "att";
+    d.innerHTML = `<img src="data:${p.mime};base64,${p.data}"><button aria-label="Remove">×</button>`;
+    d.querySelector("button").onclick = () => { pending.splice(i, 1); renderAttach(); updateSend(); };
+    r.append(d);
+  });
+}
+
+/* ---------------- voice input ---------------- */
+let rec = null;
+function toggleMic(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return toast("Voice typing is browser me nahi hai (Chrome use karo)");
+  if (rec) { rec.stop(); return; }
+  rec = new SR(); rec.lang = S.voiceLang; rec.interimResults = true; rec.continuous = false;
+  const base = $("#input").value ? $("#input").value.trimEnd() + " " : "";
+  rec.onresult = e => { let t = ""; for (const r of e.results) t += r[0].transcript; $("#input").value = base + t; autoSize(); updateSend(); };
+  rec.onend = () => { rec = null; $("#mic").classList.remove("rec"); };
+  rec.onerror = e => { if (e.error === "not-allowed") toast("Mic permission do"); };
+  rec.start(); $("#mic").classList.add("rec");
+}
+
+/* ---------------- settings modal ---------------- */
+function openSettings(note){
+  const m = $("#modal");
+  m.innerHTML = `
+    <h2>Settings</h2>
+    ${note ? `<div class="err" style="margin-bottom:8px">${esc(note)}</div>` : ""}
+    <div class="field"><label>Connection</label>
+      <div class="seg"><button data-m="server">Team access code</button><button data-m="own">Apni Gemini key</button></div>
+      <small id="modeHelp"></small></div>
+    <div class="field" id="fCode"><label>Access code</label><input id="sCode" type="password" autocomplete="off" value="${esc(S.code)}"><small>Danny se mila hua code.</small></div>
+    <div class="field" id="fKey"><label>Gemini API key</label><input id="sKey" type="password" autocomplete="off" value="${esc(S.key)}"><small>aistudio.google.com/apikey se free key. Sirf is phone me save hoti hai.</small></div>
+    <div class="field"><label>Custom instructions</label><textarea id="sSys" placeholder="Jaise: Main SEO executive hoon. Jawab Hinglish me, short aur practical do.">${esc(S.system)}</textarea></div>
+    <div class="field"><label>Voice typing language</label>
+      <select id="sVoice"><option value="en-IN">English (India) — Hinglish ke liye best</option><option value="hi-IN">Hindi</option><option value="en-US">English (US)</option></select></div>
+    <div class="field"><label>Theme</label>
+      <select id="sTheme"><option value="auto">Phone ke hisaab se</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
+    <div class="field"><label>Data</label><button class="btn" id="exportBtn">Chats export (JSON)</button> <button class="btn danger" id="wipeBtn">Saari chats delete</button></div>
+    <div class="modalBtns"><button class="btn" id="cancelS">Cancel</button><button class="btn primary" id="saveS">Save</button></div>`;
+  let mode = S.mode;
+  const setMode = md => { mode = md;
+    m.querySelectorAll(".seg button").forEach(b => b.classList.toggle("on", b.dataset.m === md));
+    $("#fCode").style.display = md === "server" ? "" : "none"; $("#fKey").style.display = md === "own" ? "" : "none";
+    $("#modeHelp").textContent = md === "server" ? "Server wali key use hogi; daily limit lagti hai." : "Seedha Google se, aapki apni free limit.";
+  };
+  m.querySelectorAll(".seg button").forEach(b => b.onclick = () => setMode(b.dataset.m));
+  if (STATIC_HOST) m.querySelector(".seg").parentElement.style.display = "none";
+  setMode(mode);
+  $("#sVoice").value = S.voiceLang; $("#sTheme").value = S.theme;
+  $("#cancelS").onclick = closeModal;
+  $("#exportBtn").onclick = () => { const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(chats, null, 1)], {type:"application/json"}));
+    a.download = "nova-chats.json"; a.click(); };
+  $("#wipeBtn").onclick = async () => { if (!confirm("Saari chats hamesha ke liye delete?")) return;
+    for (const c of chats) await dbDel(c.id); chats = []; newChat(); closeModal(); toast("Delete ho gayi"); };
+  $("#saveS").onclick = async () => {
+    Object.assign(S, {mode, code:$("#sCode").value.trim(), key:$("#sKey").value.trim(), system:$("#sSys").value,
+      voiceLang:$("#sVoice").value, theme:$("#sTheme").value});
+    saveS(); applyTheme(); closeModal();
+    await connect(true);
+  };
+  $("#modalBack").classList.add("show");
+}
+function closeModal(){ $("#modalBack").classList.remove("show"); }
+
+/* ---------------- connect / models ---------------- */
+async function connect(announce){
+  userName = ""; $("#who").textContent = "";
+  if (S.mode === "server" && S.code) {
+    try {
+      const r = await fetch("api.php?check=1", {headers:{"X-Access-Code":S.code}});
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || r.status);
+      MODELS = j.models; userName = j.name.charAt(0).toUpperCase() + j.name.slice(1);
+      $("#who").textContent = `${userName} · aaj ${j.left} messages baaki`;
+      if (announce) toast(`Welcome ${userName}!`);
+    } catch (e) { $("#who").textContent = "Code check nahi hua: " + e.message; if (announce) toast("Code galat ya server nahi mila"); }
+  } else {
+    MODELS = OWN_MODELS.slice();
+    if (S.mode === "own" && S.key) { $("#who").textContent = "Apni Gemini key"; if (announce) toast("Saved"); }
+  }
+  const sel = $("#model"); sel.innerHTML = "";
+  MODELS.forEach(m => { const o = document.createElement("option"); o.value = m; o.textContent = prettyModel(m); sel.append(o); });
+  if (!MODELS.includes(S.model)) S.model = MODELS[0];
+  sel.value = S.model;
+  $("#hello").textContent = userName ? `Hi ${userName}, kya madad karun?` : "Kya madad karun?";
+}
+function prettyModel(m){
+  if (/lite/.test(m)) return "Fast ⚡ " + m.replace(/^gemini-/, "");
+  if (/pro/.test(m)) return "Smart 🧠 " + m.replace(/^gemini-/, "");
+  return "Balanced ✨ " + m.replace(/^gemini-/, "");
+}
+
+/* ---------------- wiring ---------------- */
+function autoSize(){ const t = $("#input"); t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 200) + "px"; }
+$("#input").addEventListener("input", () => { autoSize(); updateSend(); });
+$("#input").addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey && !e.isComposing && matchMedia("(pointer:fine)").matches) { e.preventDefault(); send(); }
+});
+$("#input").addEventListener("paste", e => { const f = [...(e.clipboardData || {}).files || []]; if (f.length) { e.preventDefault(); addFiles(f); } });
+$("#send").onclick = () => busy ? stop() : send();
+$("#attach").onclick = () => $("#file").click();
+$("#file").onchange = e => { addFiles([...e.target.files]); e.target.value = ""; };
+$("#mic").onclick = toggleMic;
+$("#newChat").onclick = () => { newChat(); closeSide(); };
+$("#newChatTop").onclick = newChat;
+$("#menuBtn").onclick = () => document.body.classList.add("sideOpen");
+$("#shade").onclick = closeSide;
+$("#openSettings").onclick = () => { closeSide(); openSettings(); };
+$("#modalBack").onclick = e => { if (e.target.id === "modalBack") closeModal(); };
+$("#search").oninput = renderList;
+$("#model").onchange = e => { S.model = e.target.value; saveS(); };
+const webBtn = $("#webToggle");
+const paintWeb = () => webBtn.classList.toggle("on", S.web);
+webBtn.onclick = () => { S.web = !S.web; saveS(); paintWeb(); toast(S.web ? "Web search ON — latest info" : "Web search OFF"); };
+paintWeb();
+document.querySelectorAll(".starters button").forEach(b => b.onclick = () => send(b.dataset.p));
+document.addEventListener("dragover", e => e.preventDefault());
+document.addEventListener("drop", e => { e.preventDefault(); addFiles([...e.dataTransfer.files]); });
+
+(async () => {
+  await openDB();
+  chats = (await dbAll()).sort((a, b) => b.updated - a.updated);
+  renderList();
+  await connect(false);
+  if ((S.mode === "server" && !S.code) || (S.mode === "own" && !S.key)) openSettings(S.mode === "own" ? "Shuru karne ke liye apni Gemini API key daalo." : "Shuru karne ke liye access code daalo.");
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+})();
+</script>
+</body>
+</html>
